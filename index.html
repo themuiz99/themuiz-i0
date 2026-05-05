@@ -1,0 +1,271 @@
+```html
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เช็คไอพีและประวัติการเข้าใช้งาน v1.2</title>
+    <!-- ใช้งาน Tailwind CSS ผ่าน CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- ใช้งาน Font Awesome สำหรับไอคอน -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Sarabun:wght@400;700&display=swap');
+        
+        body {
+            background-color: #0f172a; /* Slate 900 */
+            font-family: 'Inter', 'Sarabun', sans-serif;
+            color: #f1f5f9;
+        }
+        .card {
+            background: #1e293b; /* Slate 800 */
+            border: 1px solid #334155;
+            border-radius: 1.25rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+        .loader {
+            border: 3px solid #334155;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* ปรับแต่ง Scrollbar ให้ดูสวยงาม */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4 md:p-12">
+
+    <div class="w-full max-w-2xl">
+        <!-- Header & Current IP Display -->
+        <div class="card p-10 mb-8 text-center relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600"></div>
+            
+            <h1 class="text-slate-400 font-medium uppercase tracking-widest text-sm mb-4">สถานะการเชื่อมต่อปัจจุบัน</h1>
+            
+            <div id="ip-display" class="text-4xl md:text-6xl font-extrabold text-white my-8 break-all tracking-tighter leading-tight">
+                <span class="loader mr-3"></span>
+                <span class="text-slate-500 text-2xl font-normal">กำลังตรวจสอบ...</span>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
+                <div id="status-badge" class="hidden items-center px-5 py-2 rounded-full text-sm font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span class="w-2.5 h-2.5 mr-2.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                    ออนไลน์
+                </div>
+                
+                <button onclick="fetchIP()" id="refresh-btn" class="flex items-center px-6 py-2.5 rounded-full text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white transition-all active:scale-95 shadow-xl shadow-blue-900/40 group">
+                    <i class="fa-solid fa-rotate-right mr-2.5 group-hover:rotate-180 transition-transform duration-500" id="refresh-icon"></i>
+                    เช็คไอพีใหม่
+                </button>
+            </div>
+        </div>
+
+        <!-- History Section -->
+        <div class="card p-8">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-xl font-bold text-slate-100 flex items-center">
+                    <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center mr-4">
+                        <i class="fa-solid fa-history text-blue-400"></i>
+                    </div>
+                    ประวัติการเช็คไอพี
+                </h2>
+                <button onclick="clearHistory()" class="text-xs text-slate-500 hover:text-red-400 font-bold transition-colors uppercase tracking-widest px-3 py-1 border border-slate-700 rounded-md hover:border-red-400/30">
+                    ล้างประวัติ
+                </button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="text-[10px] text-slate-500 uppercase tracking-[0.2em] border-b border-slate-700/50">
+                        <tr>
+                            <th class="pb-4 font-bold">วันที่ และ เวลา</th>
+                            <th class="pb-4 font-bold text-right">ไอพีแอดเดรส</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-body" class="text-slate-300 divide-y divide-slate-700/30">
+                        <!-- รายการประวัติจะแสดงที่นี่ -->
+                    </tbody>
+                </table>
+                <div id="no-history" class="hidden py-16 text-center">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-700/20 mb-4">
+                        <i class="fa-solid fa-ghost text-slate-600 text-2xl"></i>
+                    </div>
+                    <p class="text-slate-500 text-sm font-medium">ยังไม่มีข้อมูลประวัติการใช้งานในเบราว์เซอร์นี้</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- External Link & Info -->
+        <div class="mt-10 text-center">
+            <p class="text-slate-600 text-xs mb-2">
+                ข้อมูลอ้างอิงจาก <a href="https://www.ipify.org" target="_blank" class="text-blue-500 hover:text-blue-400 transition-colors">ipify.org</a>
+            </p>
+            <div class="flex justify-center gap-4 text-slate-700">
+                <i class="fa-brands fa-github text-lg"></i>
+                <span class="text-[10px] font-bold uppercase tracking-widest">เช็คไอพีและประวัติ v1.2</span>
+            </div>
+        </div>
+
+        <!-- Toast Alert UI -->
+        <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 px-8 py-4 bg-blue-600 text-white text-sm font-black rounded-2xl opacity-0 shadow-[0_20px_50px_rgba(37,99,235,0.3)] transition-all duration-500 pointer-events-none z-50 flex items-center border border-white/10">
+            <i class="fa-solid fa-copy mr-3 text-lg"></i> คัดลอกลงคลิปบอร์ดแล้วจ้า
+        </div>
+    </div>
+
+    <script>
+        const historyBody = document.getElementById('history-body');
+        const noHistory = document.getElementById('no-history');
+        const ipDisplay = document.getElementById('ip-display');
+        const statusBadge = document.getElementById('status-badge');
+        const toast = document.getElementById('toast');
+        const refreshIcon = document.getElementById('refresh-icon');
+
+        let isFetching = false;
+
+        // ฟังก์ชันดึงข้อมูล IP
+        async function fetchIP() {
+            if (isFetching) return;
+            
+            isFetching = true;
+            refreshIcon.classList.add('fa-spin');
+            
+            // แสดงสถานะการโหลดหากยังไม่มี IP
+            if (!ipDisplay.innerText.includes('.')) {
+                ipDisplay.innerHTML = `<span class="loader mr-4"></span><span class="text-slate-500 text-2xl font-normal tracking-normal">กำลังตรวจสอบ...</span>`;
+            }
+
+            try {
+                // เรียกใช้ API จาก ipify.org
+                const response = await fetch('https://api.ipify.org?format=json');
+                if (!response.ok) throw new Error('Network error');
+                
+                const data = await response.json();
+                const currentIP = data.ip;
+                
+                updateUI(currentIP);
+                saveHistory(currentIP);
+            } catch (error) {
+                ipDisplay.innerHTML = `<span class="text-red-500 text-2xl font-bold tracking-normal">เกิดข้อผิดพลาดในการดึงข้อมูล</span>`;
+                console.error('Fetch Error:', error);
+            } finally {
+                // หน่วงเวลาเล็กน้อยเพื่อให้ดูสมูท
+                setTimeout(() => {
+                    refreshIcon.classList.remove('fa-spin');
+                    isFetching = false;
+                }, 800);
+            }
+        }
+
+        // แสดงผล IP บนหน้าจอ
+        function updateUI(ip) {
+            ipDisplay.innerHTML = ip;
+            ipDisplay.classList.add('cursor-pointer', 'hover:text-blue-500', 'transition-colors');
+            ipDisplay.title = "คลิกเพื่อคัดลอก";
+            ipDisplay.onclick = () => copyText(ip);
+            statusBadge.style.display = 'inline-flex';
+        }
+
+        // บันทึกลง LocalStorage
+        function saveHistory(ip) {
+            const now = new Date();
+            const timestamp = now.toLocaleString('th-TH', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            const history = JSON.parse(localStorage.getItem('ip_history_v1') || '[]');
+            
+            // ไม่บันทึกซ้ำถ้าเป็น IP เดิมล่าสุด
+            if (history.length > 0 && history[0].ip === ip) {
+                renderHistory(); 
+                return;
+            }
+
+            history.unshift({ ip, timestamp });
+            if (history.length > 50) history.pop();
+            
+            localStorage.setItem('ip_history_v1', JSON.stringify(history));
+            renderHistory();
+        }
+
+        // แสดงรายการประวัติ
+        function renderHistory() {
+            const history = JSON.parse(localStorage.getItem('ip_history_v1') || '[]');
+            
+            if (history.length === 0) {
+                historyBody.innerHTML = '';
+                noHistory.classList.remove('hidden');
+                return;
+            }
+
+            noHistory.classList.add('hidden');
+            historyBody.innerHTML = history.map(item => `
+                <tr class="hover:bg-slate-700/30 transition-all group">
+                    <td class="py-5 text-[13px] text-slate-500 group-hover:text-slate-400 font-medium">${item.timestamp}</td>
+                    <td class="py-5 font-mono font-bold text-right text-slate-300 group-hover:text-blue-400 cursor-pointer transition-colors" onclick="copyText('${item.ip}')">
+                        ${item.ip}
+                        <i class="fa-solid fa-clone ml-2 opacity-0 group-hover:opacity-100 text-[10px] transition-opacity"></i>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // ล้างข้อมูลทั้งหมด
+        function clearHistory() {
+            if (window.confirm('ตะเองยืนยันที่จะลบประวัติการเช็คไอพีทั้งหมดใช่ไหมคะ?')) {
+                localStorage.removeItem('ip_history_v1');
+                renderHistory();
+            }
+        }
+
+        // คัดลอกข้อความ
+        function copyText(text) {
+            const tempInput = document.createElement('textarea');
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+
+            // แสดง Toast Notification
+            toast.classList.remove('opacity-0', 'translate-y-4');
+            toast.classList.add('opacity-100', 'translate-y-0');
+            
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', 'translate-y-4');
+            }, 2500);
+        }
+
+        // เริ่มทำงาน
+        window.onload = () => {
+            fetchIP();
+            renderHistory();
+        };
+    </script>
+</body>
+</html>
+
+```
